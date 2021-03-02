@@ -1,0 +1,1 @@
+This Bayesian Logistic Regression Program is used to select useful features for improved SVM algorithm.
