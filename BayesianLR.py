@@ -3,6 +3,7 @@ import tensorflow as tf
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 import numpy as np
+import math
 import random
 
 class Data_Preprocessing():
@@ -86,7 +87,7 @@ class Bayesian_Logistic_Regression_Parameters():
 def sigmoid(x):
     return 1. / (1. + np.exp(-x))
 
-def Loss_function(Y_train, X_train, theta, beta, covariance):
+def Loss_function(Y_train, X_train, theta, beta, p):
     #This function is designed to calculate the loss function, which will
     #be used to determine when and where the Gradient Descent is going to end
     #Should return a float number
@@ -98,20 +99,22 @@ def Loss_function(Y_train, X_train, theta, beta, covariance):
     cal5 = np.dot(np.ones((1,1032))-Y_train, np.transpose(cal3))
     likelihood = -(cal4 + cal5)
 
-    #cal6 = p * theta
+    cal6 = p * theta
     cal7 = np.exp(theta) * np.dot(beta, np.transpose(beta)) / 2
-    #cal8 = (a - 1) * theta
-    #cal9 = b * np.exp(theta)
-    #posteria = cal6 - cal7 + cal8 - cal9
-    #loss = likelihood + posteria
+    #cal8 = (a - 1) * theta = 0 * theta
+    cal9 = 0.1 * np.exp(theta)
+    posteria = cal6 - cal7 - cal9
 
-    return None
 
-def Beta_update(x, y):
+    loss = likelihood + posteria
+    return loss
+
+def Beta_update(p, theta, beta):
     # This function is going to update Beta when doing Gradient Descent
     # Should return a float number
     # To be Finished
-    return None
+    update = p - np.exp(theta) * np.dot(beta, np.transpose(beta))/2 + 1 - 1 - 0.1 * np.exp(theta)
+    return update
 
 def Theta_update(x, y):
     # This function is going to update Theta which Equals to log Gamma when doing Gradient Descent
@@ -154,9 +157,12 @@ def run():
     Parameter = Bayesian_Logistic_Regression_Parameters()
     Gamma, covariance, beta = Parameter.getParameters()
     theta = np.log(Gamma)
-    Loss_function(Y_train, X_train, theta, beta, covariance)
+    p = - math.log(np.linalg.det(covariance), np.exp(theta))
+    loss = Loss_function(Y_train, X_train, theta, beta, p)
 
-    res = np.dot(X_train, beta)
+    #Beta update not finished
+    test = Beta_update(p, theta, beta)
+
 
 
 
