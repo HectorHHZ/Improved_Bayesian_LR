@@ -84,19 +84,17 @@ class Bayesian_Logistic_Regression_Parameters():
         # check = np.dot(np.transpose(self.beta), self.test)
         return self.Gamma, self.MultiNormal_Cov, self.beta
 
-def sigmoid(x):
-    return 1. / (1. + np.exp(-x))
 
 def Loss_function(Y_train, X_train, theta, beta, p):
     #This function is designed to calculate the loss function, which will
     #be used to determine when and where the Gradient Descent is going to end
     #Should return a float number
-    Y_train = Y_train.reshape(1, 1032)
+    Y_train = Y_train.reshape(1, 1005)
     cal1 = np.dot(X_train, beta)
-    cal2 = np.log(np.ones((1, 1032)) + np.exp(-cal1))
-    cal3 = np.log(np.ones((1, 1032)) + np.exp(cal1))
+    cal2 = np.log(np.ones((1, 1005)) + np.exp(-cal1))
+    cal3 = np.log(np.ones((1, 1005)) + np.exp(cal1))
     cal4 = np.dot(Y_train, np.transpose(cal2))
-    cal5 = np.dot(np.ones((1,1032))-Y_train, np.transpose(cal3))
+    cal5 = np.dot(np.ones((1,1005))-Y_train, np.transpose(cal3))
     likelihood = -(cal4 + cal5)
 
     cal6 = p * theta
@@ -109,20 +107,17 @@ def Loss_function(Y_train, X_train, theta, beta, p):
     loss = likelihood + posteria
     return loss
 
-def Beta_update(p, theta, beta, Y_train, X_train):
+def Beta_diff(theta, beta, Y_train, X_train):
     # This function is going to update Beta when doing Gradient Descent
     # Should return a float number
     # To be Finished
-    property = 1 / (np.ones((1, 1032)) + np.exp(-np.dot(X_train, beta)))
+    property = 1 / (np.ones((1, 1005)) + np.exp(-np.dot(X_train, beta)))
     cal1 = np.dot((Y_train - property),X_train)
-    cal2 = cal1 - np.dot(np.exp(theta), beta)
+    update = cal1 - np.dot(np.exp(theta), beta)
 
-
-
-    update = 0
     return update
 
-def Theta_update(p, theta, beta):
+def Theta_diff(p, theta, beta):
     # This function is going to update Theta which Equals to log Gamma when doing Gradient Descent
     # Should return a float number
     # To be Finished
@@ -132,9 +127,15 @@ def Theta_update(p, theta, beta):
     update = p - np.exp(theta) * np.dot(beta, np.transpose(beta))/2 + 1 - 1 - 0.1 * np.exp(theta)
     return update
 
-
-
-
+def update(theta, beta, theta_diff, beta_diff, lr):
+    # a = theta_diff
+    # b = beta_diff
+    # test1 = theta_diff * lr
+    # test2 = beta_diff * lr
+    theta = theta - lr * theta_diff
+    beta = beta - lr * beta_diff
+    beta = beta.reshape(5, )
+    return theta, beta
 
 
 
@@ -168,11 +169,38 @@ def run():
     Gamma, covariance, beta = Parameter.getParameters()
     theta = np.log(Gamma)
     p = - math.log(np.linalg.det(covariance), np.exp(theta))
+
+    #Part 2.2: Run Gradient descent:
+    loss_lst = list()
+    beta_lst = list()
+    theta_lst = list()
+    iteration = int()
+    learning_rate = 0.0001
+    if iteration == 0:
+        loss_lst.append(Loss_function(Y_train, X_train, theta, beta, p))
+        theta, beta = update(theta, beta, Theta_diff(p, theta, beta), Beta_diff(theta, beta, Y_train, X_train), learning_rate)
+        iteration += 1
+        beta_lst.append(beta)
+        theta_lst.append(theta)
+    #value = Loss_function(Y_train, X_train, theta, beta, p) - loss_lst[iteration - 1]
+    #bool_test = abs(Loss_function(Y_train, X_train, theta, beta, p) - loss_lst[iteration - 1]) > 0.000001
+    while(abs(Loss_function(Y_train, X_train, theta, beta, p) - loss_lst[iteration - 1]) > 0.001):
+        loss = Loss_function(Y_train, X_train, theta, beta, p)
+        loss_lst.append(loss)
+        theta, beta = update(theta, beta, Theta_diff(p, theta, beta), Beta_diff(theta, beta, Y_train, X_train), learning_rate)
+        iteration += 1
+        beta_lst.append(beta)
+        theta_lst.append(theta)
+        print('This is ',iteration, 'th iteration: loss = ', loss, 'beta =',beta, 'theta =', theta)
+
+
+
+
     loss = Loss_function(Y_train, X_train, theta, beta, p)
 
     #Beta update not finished
-    test1 = Beta_update(p, theta, beta, Y_train, X_train)
-    test2 = Theta_update(p, theta, beta)
+    Beta_update = Beta_diff(theta, beta, Y_train, X_train)
+    Theta_update = Theta_diff(p, theta, beta)
 
 
 
