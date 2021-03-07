@@ -109,18 +109,28 @@ def Loss_function(Y_train, X_train, theta, beta, p):
     loss = likelihood + posteria
     return loss
 
-def Beta_update(p, theta, beta):
+def Beta_update(p, theta, beta, Y_train, X_train):
     # This function is going to update Beta when doing Gradient Descent
     # Should return a float number
     # To be Finished
-    update = p - np.exp(theta) * np.dot(beta, np.transpose(beta))/2 + 1 - 1 - 0.1 * np.exp(theta)
+    property = 1 / (np.ones((1, 1032)) + np.exp(-np.dot(X_train, beta)))
+    cal1 = np.dot((Y_train - property),X_train)
+    cal2 = cal1 - np.dot(np.exp(theta), beta)
+
+
+
+    update = 0
     return update
 
-def Theta_update(x, y):
+def Theta_update(p, theta, beta):
     # This function is going to update Theta which Equals to log Gamma when doing Gradient Descent
     # Should return a float number
     # To be Finished
-    return None
+    test_theta1 = p
+    test_theta2 = np.exp(theta) * np.dot(beta, np.transpose(beta))/2
+    test_theta3 = 0.1 * np.exp(theta)
+    update = p - np.exp(theta) * np.dot(beta, np.transpose(beta))/2 + 1 - 1 - 0.1 * np.exp(theta)
+    return update
 
 
 
@@ -161,8 +171,8 @@ def run():
     loss = Loss_function(Y_train, X_train, theta, beta, p)
 
     #Beta update not finished
-    test = Beta_update(p, theta, beta)
-
+    test1 = Beta_update(p, theta, beta, Y_train, X_train)
+    test2 = Theta_update(p, theta, beta)
 
 
 
