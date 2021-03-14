@@ -74,8 +74,8 @@ class Bayesian_Logistic_Regression_Parameters():
         # initialize Gamma
         self.Gamma = random.gammavariate(self.GammaParameters[0], self.GammaParameters[1])
         # initialize theta = log beta
-        self.MultiNormal_Cov = np.diag([self.Gamma] * 5)
-        self.mean = (0, 0, 0, 0, 0)
+        self.MultiNormal_Cov = np.diag(1 / np.array([self.Gamma] * 6))
+        self.mean = (0, 0, 0, 0, 0, 0)
         # initialize Beta
         self.beta = np.random.multivariate_normal(self.mean, self.MultiNormal_Cov, size=None, check_valid= 'raise')
         # X and Y are initialized and ready to use
@@ -91,29 +91,29 @@ def Loss_function(Y_train, X_train, theta, beta, p):
     #Should return a float number
     Y_train = Y_train.reshape(1, 1005)
     cal1 = np.dot(X_train, beta)
-    cal2 = np.log(np.ones((1, 1005)) + np.exp(-cal1))
-    cal3 = np.log(np.ones((1, 1005)) + np.exp(cal1))
-    cal4 = np.dot(Y_train, np.transpose(cal2))
-    cal5 = np.dot(np.ones((1,1005))-Y_train, np.transpose(cal3))
+    cal2 = np.log(1 + np.exp(-cal1))
+    cal3 = np.log(1 + np.exp(cal1))
+    cal4 = np.sum(Y_train * cal2.T)
+    cal5 = np.sum((1 - Y_train) * cal3.T)
     likelihood = -(cal4 + cal5)
 
-    cal6 = p * theta
+    cal6 = p * theta / 2
     cal7 = np.exp(theta) * np.dot(beta, np.transpose(beta)) / 2
     #cal8 = (a - 1) * theta = 0 * theta
     cal9 = 0.1 * np.exp(theta)
-    posteria = cal6 - cal7 - cal9
+    prior = cal6 - cal7 - cal9
 
-
-    loss = likelihood + posteria
+    loss = likelihood + prior
     return loss
 
 def Beta_diff(theta, beta, Y_train, X_train):
     # This function is going to update Beta when doing Gradient Descent
     # Should return a float number
     # To be Finished
-    property = 1 / (np.ones((1, 1005)) + np.exp(-np.dot(X_train, beta)))
-    cal1 = np.dot((Y_train - property),X_train)
-    update = cal1 - np.dot(np.exp(theta), beta)
+    property = 1 / (1 + np.exp(-np.dot(X_train, beta)))
+    cal1 = np.dot((Y_train - property), X_train)
+    cal2 = np.exp(theta) * beta
+    update = cal1 - cal2
 
     return update
 
@@ -121,10 +121,10 @@ def Theta_diff(p, theta, beta):
     # This function is going to update Theta which Equals to log Gamma when doing Gradient Descent
     # Should return a float number
     # To be Finished
-    test_theta1 = p
+    test_theta1 = p / 2
     test_theta2 = np.exp(theta) * np.dot(beta, np.transpose(beta))/2
     test_theta3 = 0.1 * np.exp(theta)
-    update = p - np.exp(theta) * np.dot(beta, np.transpose(beta))/2 + 1 - 1 - 0.1 * np.exp(theta)
+    update = p / 2 - (np.exp(theta) * np.dot(beta, np.transpose(beta)))/2 + 1 - 1 - 0.1 * np.exp(theta)
     return update
 
 def update(theta, beta, theta_diff, beta_diff, lr):
@@ -132,11 +132,15 @@ def update(theta, beta, theta_diff, beta_diff, lr):
     # b = beta_diff
     # test1 = theta_diff * lr
     # test2 = beta_diff * lr
-    theta = theta - lr * theta_diff
-    beta = beta - lr * beta_diff
-    beta = beta.reshape(5, )
+    theta = theta + lr * theta_diff
+    beta = beta + lr * beta_diff
+    beta = beta.reshape(6, )
     return theta, beta
 
+def result(beta, X_train):
+    res = 1 / (1 + np.exp(- np.dot(X_train, beta)))
+    res = (res > 0.5) + 0
+    return res
 
 
 
@@ -159,7 +163,9 @@ def run():
         X_test_lst.append(test)
 
     X_train= np.hstack((X_train_lst[0], X_train_lst[1],X_train_lst[2], X_train_lst[3], X_train_lst[4]))
+    X_train = np.hstack((np.ones((1005, 1)), X_train))
     X_test = np.hstack((X_test_lst[0], X_test_lst[1],X_test_lst[2], X_test_lst[3], X_test_lst[4]))
+    X_test = np.hstack((np.ones((113, 1)), X_test))
     Y_train = np.asarray(Instance[0].y_train)
     Y_test = np.asarray(Instance[1].y_test)
 
@@ -168,7 +174,7 @@ def run():
     Parameter = Bayesian_Logistic_Regression_Parameters()
     Gamma, covariance, beta = Parameter.getParameters()
     theta = np.log(Gamma)
-    p = - math.log(np.linalg.det(covariance), np.exp(theta))
+    p = len(Features) + 1
 
     #Part 2.2: Run Gradient descent:
     loss_lst = list()
@@ -184,7 +190,8 @@ def run():
         theta_lst.append(theta)
     #value = Loss_function(Y_train, X_train, theta, beta, p) - loss_lst[iteration - 1]
     #bool_test = abs(Loss_function(Y_train, X_train, theta, beta, p) - loss_lst[iteration - 1]) > 0.000001
-    while(abs(Loss_function(Y_train, X_train, theta, beta, p) - loss_lst[iteration - 1]) > 0.001):
+    while(abs(Loss_function(Y_train, X_train, theta, beta, p) - loss_lst[iteration - 1]) > 0.0000000000001):
+        learning_rate = 0.0001
         loss = Loss_function(Y_train, X_train, theta, beta, p)
         loss_lst.append(loss)
         theta, beta = update(theta, beta, Theta_diff(p, theta, beta), Beta_diff(theta, beta, Y_train, X_train), learning_rate)
@@ -192,18 +199,14 @@ def run():
         beta_lst.append(beta)
         theta_lst.append(theta)
         print('This is ',iteration, 'th iteration: loss = ', loss, 'beta =',beta, 'theta =', theta)
-
-
-
-
-    loss = Loss_function(Y_train, X_train, theta, beta, p)
-
-    #Beta update not finished
-    Beta_update = Beta_diff(theta, beta, Y_train, X_train)
-    Theta_update = Theta_diff(p, theta, beta)
-
-
-
+        #if (iteration == 100000):
+        #    print("This is 9999th iteration")
+        #    break
+    res = result(beta, X_train)
+    y = np.array(Y_train)
+    Y = np.array(Y_test)
+    accuracy1 = np.mean(res == y)
+    print(accuracy1)
     return None
 
 if __name__ == '__main__':
